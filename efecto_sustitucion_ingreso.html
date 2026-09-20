@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Efecto sustitución e ingreso</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root{
+      --bg:#f4f8fb;
+      --panel:#fff;
+      --text:#173147;
+      --muted:#667d8f;
+      --border:#d7e3ec;
+      --blue:#55a9d9;
+      --blue-dark:#24769f;
+      --orange:#e59a35;
+      --orange-dark:#9c5a00;
+      --red:#d9534f;
+      --red-dark:#a9322e;
+      --green:#2c7a4b;
+      --soft:#eef8fd;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .app{max-width:1500px;margin:0 auto;padding:18px}
+    header{margin-bottom:14px}
+    h1{margin:0 0 6px;font-size:clamp(23px,3vw,34px);letter-spacing:-.02em}
+    header p{margin:0;color:var(--muted);max-width:1080px;line-height:1.46}
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(310px,390px) minmax(0,1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:0 4px 14px rgba(33,72,104,.04);
+    }
+    .controls{padding:16px}
+    h2{font-size:16px;margin:0 0 12px}
+    .section{
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:11px;
+      background:#fbfdff;
+      margin-bottom:12px;
+    }
+    .section-title{font-size:13px;font-weight:760;margin-bottom:10px}
+    .field{margin-bottom:11px}
+    label{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      font-size:13px;
+      font-weight:650;
+      margin-bottom:5px;
+    }
+    .hint{color:var(--muted);font-weight:500}
+    input,select{
+      width:100%;
+      min-height:42px;
+      padding:9px 10px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      background:#fff;
+      color:var(--text);
+      font-size:16px;
+    }
+    input:focus,select:focus,button:focus{
+      outline:3px solid rgba(85,169,217,.18);
+      border-color:var(--blue);
+    }
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .shock-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    button{
+      min-height:42px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      background:#fff;
+      color:var(--text);
+      padding:8px 10px;
+      font-weight:650;
+      cursor:pointer;
+    }
+    button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+    button.shock.active{
+      border-color:var(--red);
+      background:#fff2f1;
+      color:var(--red-dark);
+    }
+    button.step.active{
+      background:#eaf5fb;
+      border-color:var(--blue);
+      color:var(--blue-dark);
+    }
+    .slider-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:4px;
+    }
+    .slider-head label{margin:0}
+    .slider-value{
+      min-width:52px;
+      text-align:right;
+      font-size:13px;
+      font-weight:760;
+      color:var(--red-dark);
+    }
+    input.range{
+      width:100%;
+      min-height:28px;
+      padding:0;
+      border:0;
+      background:transparent;
+      accent-color:var(--red);
+      cursor:pointer;
+    }
+    .buttons{display:flex;flex-wrap:wrap;gap:7px}
+    .note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:7px}
+    .stagebar{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:7px;
+      padding:12px 12px 0;
+    }
+    .stage{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:9px;
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+      background:#fff;
+    }
+    .stage.current{
+      border-color:var(--blue);
+      background:#eef8fd;
+      color:var(--blue-dark);
+      font-weight:760;
+    }
+    .stage.done{color:var(--green)}
+    #plot{width:100%;min-height:610px}
+    .readout{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+      margin:0 12px 12px;
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 11px;
+      background:#fff;
+      min-width:0;
+    }
+    .card .k{font-size:11px;color:var(--muted);margin-bottom:3px}
+    .card .v{font-size:14px;font-weight:760;overflow-wrap:anywhere}
+    .subeffect{
+      margin-top:5px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+    .explain{
+      margin:0 12px 12px;
+      padding:11px 12px;
+      border-radius:10px;
+      background:var(--soft);
+      font-size:13px;
+      line-height:1.5;
+    }
+    .decomp{
+      margin:0 12px 14px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .decomp .card{line-height:1.45;font-size:13px}
+    .orange{color:var(--orange-dark)}
+    .red{color:var(--red-dark)}
+    .blue{color:var(--blue-dark)}
+    .error{color:#a71d16;min-height:18px;font-size:12px;margin-top:7px}
+    @media(max-width:970px){
+      .layout{grid-template-columns:1fr}
+      #plot{min-height:520px}
+    }
+    @media(max-width:560px){
+      .app{padding:10px}
+      .grid2,.decomp{grid-template-columns:1fr}
+      .stagebar{grid-template-columns:1fr 1fr}
+      .readout{grid-template-columns:1fr}
+      #plot{min-height:470px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Efecto sustitución y efecto ingreso</h1>
+    <p>
+      Parte de un óptimo inicial. Elige una subida o bajada en el precio de X o Y y observa la descomposición del cambio total:
+      primero se observa el efecto sustitución manteniendo el nivel de satisfacción inicial, y después el efecto ingreso hasta llegar al nuevo óptimo.
+    </p>
+  </header>
+
+  <div class="layout">
+    <aside class="panel controls">
+      <h2>Escenario inicial</h2>
+
+      <div class="field">
+        <label for="utilityType">Preferencias</label>
+        <select id="utilityType">
+          <option value="cobb">Cobb-Douglas</option>
+          <option value="substitutes">Sustitutos perfectos</option>
+          <option value="complements">Complementarios perfectos</option>
+        </select>
+      </div>
+
+      <div id="cobbParams" class="section">
+        <div class="section-title">U(X,Y) = XᵅYᵝ</div>
+        <div class="grid2">
+          <div class="field">
+            <label for="alpha">α</label>
+            <input id="alpha" type="number" min="0.01" step="0.05" value="0.5">
+          </div>
+          <div class="field">
+            <label for="beta">β</label>
+            <input id="beta" type="number" min="0.01" step="0.05" value="0.5">
+          </div>
+        </div>
+      </div>
+
+      <div id="linearParams" class="section" style="display:none">
+        <div class="section-title" id="linearTitle">Parámetros</div>
+        <div class="grid2">
+          <div class="field">
+            <label for="aParam">a</label>
+            <input id="aParam" type="number" min="0.01" step="0.1" value="1.2">
+          </div>
+          <div class="field">
+            <label for="bParam">b</label>
+            <input id="bParam" type="number" min="0.01" step="0.1" value="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="field">
+          <label for="income">Ingreso <span class="hint">m</span></label>
+          <input id="income" type="number" min="0.01" step="1" value="100">
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="px">Precio X <span class="hint">pₓ</span></label>
+            <input id="px" type="number" min="0.01" step="0.1" value="10">
+          </div>
+          <div class="field">
+            <label for="py">Precio Y <span class="hint">pᵧ</span></label>
+            <input id="py" type="number" min="0.01" step="0.1" value="10">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Cambio de precio</div>
+        <div class="shock-grid">
+          <button type="button" class="shock active" data-shock="pxUp">Sube pₓ</button>
+          <button type="button" class="shock" data-shock="pxDown">Baja pₓ</button>
+          <button type="button" class="shock" data-shock="pyUp">Sube pᵧ</button>
+          <button type="button" class="shock" data-shock="pyDown">Baja pᵧ</button>
+        </div>
+
+        <div style="margin-top:13px">
+          <div class="slider-head">
+            <label for="shockSize">Magnitud</label>
+            <span class="slider-value" id="shockValue">25%</span>
+          </div>
+          <input id="shockSize" class="range" type="range" min="5" max="50" step="1" value="25">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Animación</div>
+        <div class="buttons">
+          <button type="button" class="primary" id="playBtn">▶ Reproducir</button>
+          <button type="button" id="pauseBtn">Pausar</button>
+          <button type="button" id="resetBtn">Reiniciar</button>
+        </div>
+        <div class="buttons" style="margin-top:8px">
+          <button type="button" class="step" data-stage="0">Inicial</button>
+          <button type="button" class="step" data-stage="1">Sustitución</button>
+          <button type="button" class="step" data-stage="2">Ingreso</button>
+          <button type="button" class="step" data-stage="3">Total</button>
+        </div>
+        <div class="note">La animación avanza lentamente por etapas para que pueda apreciarse cada movimiento. También puedes seleccionar directamente una etapa.</div>
+      </div>
+
+      <div class="error" id="error" aria-live="polite"></div>
+    </aside>
+
+    <section class="panel">
+      <div class="stagebar">
+        <div class="stage" id="stage0">1. Óptimo inicial</div>
+        <div class="stage" id="stage1">2. Efecto sustitución</div>
+        <div class="stage" id="stage2">3. Efecto ingreso</div>
+        <div class="stage" id="stage3">4. Efecto total</div>
+      </div>
+
+      <div id="plot" role="img" aria-label="Descomposición gráfica del efecto sustitución y efecto ingreso"></div>
+
+      <div class="explain" id="explain"></div>
+
+      <div class="readout effects-summary">
+        <div class="card">
+          <div class="k">Efecto sustitución</div>
+          <div class="v orange" id="substitutionEffect">—</div>
+          <div class="subeffect" id="substitutionDetail">—</div>
+        </div>
+        <div class="card">
+          <div class="k">Efecto ingreso</div>
+          <div class="v red" id="incomeEffect">—</div>
+          <div class="subeffect" id="incomeDetail">—</div>
+        </div>
+        <div class="card">
+          <div class="k">Efecto total</div>
+          <div class="v" id="totalEffect">—</div>
+          <div class="subeffect" id="totalDetail">—</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const root=document.querySelector('.app');
+  if(!root || root.dataset.ready==='1') return;
+  root.dataset.ready='1';
+
+  const $=id=>document.getElementById(id);
+  const els={
+    utilityType:$('utilityType'),
+    alpha:$('alpha'),beta:$('beta'),
+    a:$('aParam'),b:$('bParam'),
+    cobbParams:$('cobbParams'),linearParams:$('linearParams'),linearTitle:$('linearTitle'),
+    income:$('income'),px:$('px'),py:$('py'),
+    shockSize:$('shockSize'),shockValue:$('shockValue'),
+    playBtn:$('playBtn'),pauseBtn:$('pauseBtn'),resetBtn:$('resetBtn'),
+    error:$('error'),plot:$('plot'),
+    explain:$('explain'),
+    substitutionEffect:$('substitutionEffect'),
+    substitutionDetail:$('substitutionDetail'),
+    incomeEffect:$('incomeEffect'),
+    incomeDetail:$('incomeDetail'),
+    totalEffect:$('totalEffect'),
+    totalDetail:$('totalDetail'),
+    stages:[ $('stage0'),$('stage1'),$('stage2'),$('stage3') ]
+  };
+
+  let selectedShock='pxUp';
+  let currentStage=0;
+  let timer=null;
+
+  const fmt=v=>{
+    if(!Number.isFinite(v)) return '—';
+    const clean=Math.abs(v)<1e-10?0:v;
+    const a=Math.abs(clean);
+    if(a>=10) return clean.toLocaleString('es-CO',{maximumFractionDigits:2});
+    return clean.toLocaleString('es-CO',{maximumFractionDigits:3});
+  };
+
+  const signed=v=>{
+    const clean=Math.abs(v)<1e-10?0:v;
+    return `${clean>0?'+':''}${fmt(clean)}`;
+  };
+
+  const pos=(v,fallback)=>{
+    const n=Number(v);
+    return Number.isFinite(n)&&n>0?n:fallback;
+  };
+
+  function prefs(){
+    return {
+      type:els.utilityType.value,
+      alpha:pos(els.alpha.value,.5),
+      beta:pos(els.beta.value,.5),
+      a:pos(els.a.value,1.2),
+      b:pos(els.b.value,1)
+    };
+  }
+
+  function baseline(){
+    return {
+      m:pos(els.income.value,100),
+      px:pos(els.px.value,10),
+      py:pos(els.py.value,10)
+    };
+  }
+
+  function utility(x,y,p){
+    x=Math.max(0,x); y=Math.max(0,y);
+    if(p.type==='cobb') return Math.pow(x,p.alpha)*Math.pow(y,p.beta);
+    if(p.type==='substitutes') return p.a*x+p.b*y;
+    return Math.min(p.a*x,p.b*y);
+  }
+
+  function marshallian(sc,p){
+    if(p.type==='cobb'){
+      const s=p.alpha+p.beta;
+      const x=(p.alpha/s)*(sc.m/sc.px);
+      const y=(p.beta/s)*(sc.m/sc.py);
+      return {x,y,u:utility(x,y,p)};
+    }
+
+    if(p.type==='substitutes'){
+      const rx=p.a/sc.px, ry=p.b/sc.py;
+      if(Math.abs(rx-ry)<1e-10){
+        const x=sc.m/(2*sc.px), y=sc.m/(2*sc.py);
+        return {x,y,u:utility(x,y,p),multiple:true};
+      }
+      if(rx>ry){
+        const x=sc.m/sc.px,y=0;
+        return {x,y,u:utility(x,y,p)};
+      }
+      const x=0,y=sc.m/sc.py;
+      return {x,y,u:utility(x,y,p)};
+    }
+
+    const denom=sc.px*p.b+sc.py*p.a;
+    const x=p.b*sc.m/denom;
+    const y=p.a*sc.m/denom;
+    return {x,y,u:utility(x,y,p)};
+  }
+
+  function compensatedBundle(px1,py1,u0,p){
+    if(p.type==='cobb'){
+      const k=(p.beta*px1)/(p.alpha*py1);
+      const x=Math.pow(u0/Math.pow(k,p.beta),1/(p.alpha+p.beta));
+      const y=k*x;
+      const e=px1*x+py1*y;
+      return {x,y,u:u0,e};
+    }
+
+    if(p.type==='substitutes'){
+      const cx=px1/p.a, cy=py1/p.b;
+      if(Math.abs(cx-cy)<1e-10){
+        const x=u0/(2*p.a), y=u0/(2*p.b);
+        return {x,y,u:u0,e:px1*x+py1*y,multiple:true};
+      }
+      if(cx<cy){
+        const x=u0/p.a,y=0;
+        return {x,y,u:u0,e:px1*x};
+      }
+      const x=0,y=u0/p.b;
+      return {x,y,u:u0,e:py1*y};
+    }
+
+    const x=u0/p.a;
+    const y=u0/p.b;
+    return {x,y,u:u0,e:px1*x+py1*y};
+  }
+
+  function shockedScenario(base){
+    const q=Number(els.shockSize.value)/100;
+    const sc={...base};
+    if(selectedShock==='pxUp') sc.px=base.px*(1+q);
+    if(selectedShock==='pxDown') sc.px=base.px*(1-q);
+    if(selectedShock==='pyUp') sc.py=base.py*(1+q);
+    if(selectedShock==='pyDown') sc.py=base.py*(1-q);
+    return sc;
+  }
+
+  function indifference(u,p,xMax,yMax){
+    const xs=[],ys=[];
+    if(p.type==='cobb'){
+      const n=500;
+      for(let i=1;i<=n;i++){
+        const x=xMax*i/n;
+        const y=Math.pow(u/Math.pow(x,p.alpha),1/p.beta);
+        if(Number.isFinite(y)&&y>=0&&y<=yMax){xs.push(x);ys.push(y);}
+      }
+      return {x:xs,y:ys};
+    }
+    if(p.type==='substitutes'){
+      const n=500;
+      for(let i=0;i<=n;i++){
+        const x=xMax*i/n;
+        const y=(u-p.a*x)/p.b;
+        if(Number.isFinite(y)&&y>=0&&y<=yMax){xs.push(x);ys.push(y);}
+      }
+      return {x:xs,y:ys};
+    }
+    const xk=u/p.a,yk=u/p.b;
+    return {x:[xk,xk,null,xk,xMax],y:[yMax,yk,null,yk,yk]};
+  }
+
+  function shockLabel(base,fin){
+    if(selectedShock==='pxUp') return `El precio de X sube de ${fmt(base.px)} a ${fmt(fin.px)}.`;
+    if(selectedShock==='pxDown') return `El precio de X baja de ${fmt(base.px)} a ${fmt(fin.px)}.`;
+    if(selectedShock==='pyUp') return `El precio de Y sube de ${fmt(base.py)} a ${fmt(fin.py)}.`;
+    return `El precio de Y baja de ${fmt(base.py)} a ${fmt(fin.py)}.`;
+  }
+
+  function stageText(stage,base,fin,A,C,B){
+    if(stage===0){
+      return `<strong>Óptimo inicial.</strong> El consumidor elige A = (${fmt(A.x)}, ${fmt(A.y)}) sobre la restricción inicial.`;
+    }
+    if(stage===1){
+      return `<strong>Efecto sustitución.</strong> ${shockLabel(base,fin)} Primero cambia el precio relativo. Ajustamos temporalmente el ingreso para que el consumidor pueda alcanzar el mismo nivel de satisfacción que al inicio. El movimiento A → C representa el efecto sustitución.`;
+    }
+    if(stage===2){
+      return `<strong>Efecto ingreso.</strong> Después se pasa al ingreso realmente disponible con los nuevos precios. Ese segundo movimiento refleja el efecto ingreso. El movimiento C → B representa el efecto ingreso.`;
+    }
+    return `<strong>Efecto total.</strong> El movimiento A → B es el cambio total. Para cada bien, el efecto total se calcula como cantidad final menos cantidad inicial y coincide con la suma del efecto sustitución y el efecto ingreso.`;
+  }
+
+  function updatePanels(){
+    const t=els.utilityType.value;
+    els.cobbParams.style.display=t==='cobb'?'':'none';
+    els.linearParams.style.display=(t==='substitutes'||t==='complements')?'':'none';
+    if(t==='substitutes') els.linearTitle.textContent='U(X,Y) = aX + bY';
+    if(t==='complements') els.linearTitle.textContent='U(X,Y) = min(aX, bY)';
+  }
+
+  function updateStageUI(){
+    els.stages.forEach((el,i)=>{
+      el.classList.toggle('current',i===currentStage);
+      el.classList.toggle('done',i<currentStage);
+    });
+    root.querySelectorAll('.step').forEach(btn=>{
+      btn.classList.toggle('active',Number(btn.dataset.stage)===currentStage);
+    });
+  }
+
+  function stopAnimation(){
+    if(timer){clearTimeout(timer);timer=null;}
+  }
+
+  function render(stage=currentStage){
+    currentStage=stage;
+    updateStageUI();
+
+    const p=prefs();
+    const base=baseline();
+    const fin=shockedScenario(base);
+
+    const A=marshallian(base,p);
+    const B=marshallian(fin,p);
+    const C=compensatedBundle(fin.px,fin.py,A.u,p);
+
+    const initX=base.m/base.px, initY=base.m/base.py;
+    const finX=base.m/fin.px, finY=base.m/fin.py;
+    const compX=C.e/fin.px, compY=C.e/fin.py;
+
+    // Fixed axes for any ±50% price shock from the same initial scenario.
+    const xMax=Math.max((base.m/(base.px*.5))*1.18,initX*1.18,1);
+    const yMax=Math.max((base.m/(base.py*.5))*1.18,initY*1.18,1);
+
+    const ic0=indifference(A.u,p,xMax,yMax);
+    const ic1=indifference(B.u,p,xMax,yMax);
+
+    const traces=[
+      {
+        type:'scatter',mode:'lines',
+        x:[0,initX],y:[initY,0],
+        name:'Presupuesto inicial',
+        line:{color:'#55a9d9',width:4},
+        opacity:1
+      },
+      {
+        type:'scatter',mode:'lines',
+        x:ic0.x,y:ic0.y,
+        name:'U₀',
+        line:{color:'#24769f',width:2.5,dash:'dot'},
+        opacity:1
+      },
+      {
+        type:'scatter',mode:'markers+text',
+        x:[A.x],y:[A.y],text:['A'],textposition:'top center',
+        name:'Óptimo inicial',
+        marker:{size:11,color:'#55a9d9',line:{color:'#173147',width:1}}
+      }
+    ];
+
+    if(stage>=1){
+      traces.push(
+        {
+          type:'scatter',mode:'lines',
+          x:[0,compX],y:[compY,0],
+          name:'Presupuesto intermedio',
+          line:{color:'#e59a35',width:4,dash:'dash'}
+        },
+        {
+          type:'scatter',mode:'markers+text',
+          x:[C.x],y:[C.y],text:['C'],textposition:'top center',
+          name:'Canasta tras sustitución',
+          marker:{size:11,color:'#e59a35',line:{color:'#173147',width:1}}
+        }
+      );
+    }
+
+    if(stage>=2){
+      traces.push(
+        {
+          type:'scatter',mode:'lines',
+          x:[0,finX],y:[finY,0],
+          name:'Presupuesto final',
+          line:{color:'#d9534f',width:4}
+        },
+        {
+          type:'scatter',mode:'lines',
+          x:ic1.x,y:ic1.y,
+          name:'U₁',
+          line:{color:'#a9322e',width:2.5,dash:'dot'}
+        },
+        {
+          type:'scatter',mode:'markers+text',
+          x:[B.x],y:[B.y],text:['B'],textposition:'top center',
+          name:'Óptimo final',
+          marker:{size:11,color:'#d9534f',line:{color:'#173147',width:1}}
+        }
+      );
+    }
+
+    const annotations=[];
+
+    if(stage>=1){
+      annotations.push({
+        x:C.x,y:C.y,ax:A.x,ay:A.y,
+        xref:'x',yref:'y',axref:'x',ayref:'y',
+        showarrow:true,arrowhead:3,arrowsize:1.15,arrowwidth:3,
+        arrowcolor:'#e59a35',
+        text:stage===1?'Sustitución':'',
+        font:{color:'#9c5a00',size:12},
+        bgcolor:'rgba(255,255,255,.85)',
+        borderpad:3
+      });
+    }
+
+    if(stage>=2){
+      annotations.push({
+        x:B.x,y:B.y,ax:C.x,ay:C.y,
+        xref:'x',yref:'y',axref:'x',ayref:'y',
+        showarrow:true,arrowhead:3,arrowsize:1.15,arrowwidth:3,
+        arrowcolor:'#d9534f',
+        text:stage===2?'Ingreso':'',
+        font:{color:'#a9322e',size:12},
+        bgcolor:'rgba(255,255,255,.85)',
+        borderpad:3
+      });
+    }
+
+    if(stage===3){
+      annotations.push({
+        x:B.x,y:B.y,ax:A.x,ay:A.y,
+        xref:'x',yref:'y',axref:'x',ayref:'y',
+        showarrow:true,arrowhead:2,arrowsize:1,arrowwidth:1.5,
+        arrowcolor:'#465966',
+        text:'Total',
+        font:{color:'#465966',size:12},
+        bgcolor:'rgba(255,255,255,.9)',
+        borderpad:3
+      });
+    }
+
+    const layout={
+      margin:{l:65,r:25,t:25,b:55},
+      paper_bgcolor:'rgba(0,0,0,0)',
+      plot_bgcolor:'#fbfdff',
+      hovermode:'closest',
+      uirevision:'income-substitution-decomposition',
+      transition:{duration:1100,easing:'cubic-in-out'},
+      xaxis:{
+        title:'Bien X',range:[0,xMax],minallowed:0,
+        zeroline:false,gridcolor:'#e3edf3',
+        linecolor:'#9fb5c4',mirror:true
+      },
+      yaxis:{
+        title:'Bien Y',range:[0,yMax],minallowed:0,
+        zeroline:false,gridcolor:'#e3edf3',
+        linecolor:'#9fb5c4',mirror:true,
+        scaleanchor:'x',scaleratio:1
+      },
+      legend:{
+        orientation:'h',x:0,y:1.08,
+        bgcolor:'rgba(255,255,255,.82)'
+      },
+      annotations
+    };
+
+    Plotly.react(els.plot,traces,layout,{
+      responsive:true,
+      displaylogo:false,
+      scrollZoom:true
+    });
+
+    els.explain.innerHTML=stageText(stage,base,fin,A,C,B);
+
+    const sx=C.x-A.x;
+    const sy=C.y-A.y;
+    const ix=B.x-C.x;
+    const iy=B.y-C.y;
+
+    // El efecto total se calcula DIRECTAMENTE entre el óptimo final y el inicial.
+    // Las sumas se calculan también como verificación interna.
+    const tx=B.x-A.x;
+    const ty=B.y-A.y;
+    const txCheck=sx+ix;
+    const tyCheck=sy+iy;
+
+    els.substitutionEffect.innerHTML =
+      stage>=1
+        ? `<div><strong>X:</strong> ${signed(sx)}</div><div><strong>Y:</strong> ${signed(sy)}</div>`
+        : '—';
+    els.substitutionDetail.textContent =
+      stage>=1 ? `Cambio desde la canasta inicial A hasta la canasta intermedia C.` : 'Aparece en la etapa de sustitución.';
+
+    els.incomeEffect.innerHTML =
+      stage>=2
+        ? `<div><strong>X:</strong> ${signed(ix)}</div><div><strong>Y:</strong> ${signed(iy)}</div>`
+        : '—';
+    els.incomeDetail.textContent =
+      stage>=2 ? `Cambio desde la canasta intermedia C hasta el nuevo óptimo B.` : 'Aparece en la etapa de ingreso.';
+
+    els.totalEffect.innerHTML =
+      stage>=3
+        ? `<div><strong>X:</strong> ${fmt(A.x)} → ${fmt(B.x)} &nbsp; (<strong>${signed(tx)}</strong>)</div>`+
+          `<div><strong>Y:</strong> ${fmt(A.y)} → ${fmt(B.y)} &nbsp; (<strong>${signed(ty)}</strong>)</div>`
+        : '—';
+    els.totalDetail.textContent =
+      stage>=3
+        ? `Total = B − A. Verificación: sustitución + ingreso = X ${signed(txCheck)}, Y ${signed(tyCheck)}.`
+        : 'Aparece en la etapa final.';
+
+    els.substitutionEffect.parentElement.style.opacity=stage>=1?'1':'.42';
+    els.incomeEffect.parentElement.style.opacity=stage>=2?'1':'.42';
+    els.totalEffect.parentElement.style.opacity=stage>=3?'1':'.42';
+  }
+
+  function play(){
+    stopAnimation();
+    currentStage=0;
+    render(0);
+
+    const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const delay=reduced?1600:3200;
+
+    const advance=()=>{
+      if(currentStage>=3){timer=null;return;}
+      currentStage+=1;
+      render(currentStage);
+      timer=setTimeout(advance,delay);
+    };
+    timer=setTimeout(advance,delay);
+  }
+
+  root.querySelectorAll('.shock').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      stopAnimation();
+      selectedShock=btn.dataset.shock;
+      root.querySelectorAll('.shock').forEach(b=>b.classList.toggle('active',b===btn));
+      currentStage=0;
+      render(0);
+    });
+  });
+
+  root.querySelectorAll('.step').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      stopAnimation();
+      render(Number(btn.dataset.stage));
+    });
+  });
+
+  els.shockSize.addEventListener('input',()=>{
+    stopAnimation();
+    els.shockValue.textContent=`${els.shockSize.value}%`;
+    render(currentStage);
+  });
+
+  els.playBtn.addEventListener('click',play);
+  els.pauseBtn.addEventListener('click',stopAnimation);
+  els.resetBtn.addEventListener('click',()=>{
+    stopAnimation();
+    currentStage=0;
+    render(0);
+  });
+
+  els.utilityType.addEventListener('change',()=>{
+    stopAnimation();
+    updatePanels();
+    currentStage=0;
+    render(0);
+  });
+
+  [els.alpha,els.beta,els.a,els.b,els.income,els.px,els.py].forEach(el=>{
+    el.addEventListener('change',()=>{
+      stopAnimation();
+      currentStage=0;
+      render(0);
+    });
+  });
+
+  let firstQuadrantGuard=false;
+  els.plot.on('plotly_relayout', eventData=>{
+    if(firstQuadrantGuard || !eventData) return;
+
+    const current=els.plot.layout || {};
+    const xr=current.xaxis && current.xaxis.range ? current.xaxis.range.slice() : null;
+    const yr=current.yaxis && current.yaxis.range ? current.yaxis.range.slice() : null;
+
+    const updates={};
+    let needsUpdate=false;
+
+    if(xr && Number.isFinite(xr[0]) && xr[0] < 0){
+      const width=Math.max(xr[1]-xr[0], 1e-9);
+      updates['xaxis.range']=[0,width];
+      needsUpdate=true;
+    }
+
+    if(yr && Number.isFinite(yr[0]) && yr[0] < 0){
+      const height=Math.max(yr[1]-yr[0], 1e-9);
+      updates['yaxis.range']=[0,height];
+      needsUpdate=true;
+    }
+
+    if(needsUpdate){
+      firstQuadrantGuard=true;
+      Plotly.relayout(els.plot,updates).finally(()=>{
+        firstQuadrantGuard=false;
+      });
+    }
+  });
+
+  updatePanels();
+  els.shockValue.textContent=`${els.shockSize.value}%`;
+  render(0);
+})();
+</script>
+</body>
+</html>

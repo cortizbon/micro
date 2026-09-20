@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estática comparativa del consumidor</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root{
+      --bg:#f4f8fb;
+      --panel:#ffffff;
+      --text:#173147;
+      --muted:#667d8f;
+      --border:#d7e3ec;
+      --blue:#55a9d9;
+      --blue-dark:#24769f;
+      --blue-soft:#edf8fd;
+      --red:#d9534f;
+      --red-dark:#a9322e;
+      --red-soft:#fff1f0;
+      --green:#287a4b;
+      --orange:#b66b00;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .app{
+      max-width:1500px;
+      margin:0 auto;
+      padding:18px;
+    }
+    header{margin-bottom:14px}
+    h1{
+      margin:0 0 6px;
+      font-size:clamp(23px,3vw,34px);
+      letter-spacing:-.02em;
+    }
+    header p{
+      margin:0;
+      color:var(--muted);
+      max-width:1050px;
+      line-height:1.45;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(310px,390px) minmax(0,1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:0 4px 14px rgba(33,72,104,.04);
+    }
+    .controls{
+      padding:16px;
+    }
+    h2{
+      font-size:16px;
+      margin:0 0 12px;
+    }
+    .section{
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:11px;
+      background:#fbfdff;
+      margin-bottom:12px;
+    }
+    .section-title{
+      font-size:13px;
+      font-weight:750;
+      margin-bottom:10px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;display:inline-block;
+    }
+    .dot.a{background:var(--blue)}
+    .dot.b{background:var(--red)}
+    .field{margin-bottom:11px}
+    label{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      font-size:13px;
+      font-weight:650;
+      margin-bottom:5px;
+    }
+    .hint{
+      color:var(--muted);
+      font-weight:500;
+    }
+    input,select{
+      width:100%;
+      min-height:42px;
+      padding:9px 10px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      background:#fff;
+      color:var(--text);
+      font-size:16px;
+    }
+    input:focus,select:focus,button:focus{
+      outline:3px solid rgba(85,169,217,.18);
+      border-color:var(--blue);
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:9px;
+    }
+    .grid3{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+    }
+    .buttons{
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+    }
+    button{
+      min-height:39px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      background:#fff;
+      color:var(--text);
+      padding:7px 10px;
+      font-weight:650;
+      cursor:pointer;
+    }
+    button:hover{background:#f7fbfd}
+    button.primary{
+      background:var(--blue);
+      border-color:var(--blue);
+      color:#fff;
+    }
+    .shock-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:7px;
+    }
+    .slider-field{
+      margin-bottom:15px;
+    }
+    .slider-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:4px;
+    }
+    .slider-head label{
+      margin:0;
+    }
+    .slider-value{
+      min-width:48px;
+      text-align:right;
+      font-size:13px;
+      font-weight:760;
+      color:var(--blue-dark);
+    }
+    input.range{
+      width:100%;
+      min-height:28px;
+      padding:0;
+      border:0;
+      background:transparent;
+      accent-color:var(--blue);
+      cursor:pointer;
+    }
+    .shock-grid button{
+      font-size:12px;
+      min-height:42px;
+    }
+    .note{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+      margin-top:8px;
+    }
+    .error{
+      color:#a71d16;
+      min-height:18px;
+      font-size:12px;
+      margin-top:8px;
+    }
+    .chart-panel{
+      min-width:0;
+      overflow:hidden;
+    }
+    .summary{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:8px;
+      padding:12px 12px 0;
+    }
+    .stat{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px;
+      min-width:0;
+      background:#fff;
+    }
+    .stat .k{
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:3px;
+    }
+    .stat .v{
+      font-size:16px;
+      font-weight:760;
+      overflow-wrap:anywhere;
+    }
+    .stat .sub{
+      margin-top:3px;
+      font-size:11px;
+      color:var(--muted);
+    }
+    #plot{
+      width:100%;
+      min-height:610px;
+    }
+    .interpretation{
+      margin:0 12px 12px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:9px;
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:11px 12px;
+      background:#fff;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .card strong{font-weight:760}
+    .equation{
+      margin:0 12px 14px;
+      padding:11px 12px;
+      border-radius:10px;
+      background:var(--blue-soft);
+      font-size:13px;
+      line-height:1.48;
+    }
+    .up{color:var(--green)}
+    .down{color:#b42318}
+    .flat{color:var(--muted)}
+    .badge{
+      display:inline-block;
+      border-radius:999px;
+      padding:2px 7px;
+      font-size:11px;
+      font-weight:750;
+      background:#eef3f6;
+      color:var(--text);
+      margin-left:4px;
+    }
+    @media(max-width:970px){
+      .layout{grid-template-columns:1fr}
+      .summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #plot{min-height:520px}
+    }
+    @media(max-width:560px){
+      .app{padding:10px}
+      .grid2,.grid3,.interpretation{grid-template-columns:1fr}
+      .shock-grid{grid-template-columns:1fr 1fr}
+      .summary{grid-template-columns:1fr 1fr}
+      #plot{min-height:460px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Estática comparativa del consumidor</h1>
+    <p>
+      Parte de un único escenario óptimo inicial. Usa los sliders para aumentar el ingreso, el precio de X o el precio de Y
+      entre −25% y +25% y observa continuamente cómo cambian la restricción presupuestaria, la curva de indiferencia alcanzada y la canasta óptima para preferencias Cobb-Douglas, sustitutos perfectos o complementarios perfectos.
+    </p>
+  </header>
+
+  <div class="layout">
+    <aside class="panel controls">
+      <h2>Preferencias comunes</h2>
+
+      <div class="field">
+        <label for="utilityType">Tipo de preferencias</label>
+        <select id="utilityType">
+          <option value="cobb">Cobb-Douglas</option>
+          <option value="substitutes">Sustitutos perfectos</option>
+          <option value="complements">Complementarios perfectos</option>
+        </select>
+      </div>
+
+      <div id="cobbParams" class="section">
+        <div class="section-title">U(X,Y) = XᵅYᵝ</div>
+        <div class="grid2">
+          <div class="field">
+            <label for="alpha">α</label>
+            <input id="alpha" type="number" min="0.01" step="0.05" value="0.5">
+          </div>
+          <div class="field">
+            <label for="beta">β</label>
+            <input id="beta" type="number" min="0.01" step="0.05" value="0.5">
+          </div>
+        </div>
+      </div>
+
+      <div id="linearParams" class="section" style="display:none">
+        <div class="section-title" id="linearTitle">Parámetros</div>
+        <div class="grid2">
+          <div class="field">
+            <label for="aParam">a</label>
+            <input id="aParam" type="number" min="0.01" step="0.1" value="1">
+          </div>
+          <div class="field">
+            <label for="bParam">b</label>
+            <input id="bParam" type="number" min="0.01" step="0.1" value="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="dot a"></span> Escenario A</div>
+        <div class="field">
+          <label for="incomeA">Ingreso <span class="hint">m₀</span></label>
+          <input id="incomeA" type="number" min="0.01" step="1" value="100">
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="pxA">Precio X <span class="hint">pₓ₀</span></label>
+            <input id="pxA" type="number" min="0.01" step="0.1" value="10">
+          </div>
+          <div class="field">
+            <label for="pyA">Precio Y <span class="hint">pᵧ₀</span></label>
+            <input id="pyA" type="number" min="0.01" step="0.1" value="10">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Cambios respecto al escenario inicial</div>
+
+        <div class="slider-field">
+          <div class="slider-head">
+            <label for="incomeShock">Ingreso</label>
+            <span class="slider-value" id="incomeShockValue">+0%</span>
+          </div>
+          <input id="incomeShock" class="range" type="range" min="-25" max="25" step="1" value="0">
+        </div>
+
+        <div class="slider-field">
+          <div class="slider-head">
+            <label for="pxShock">Precio de X</label>
+            <span class="slider-value" id="pxShockValue">+0%</span>
+          </div>
+          <input id="pxShock" class="range" type="range" min="-25" max="25" step="1" value="0">
+        </div>
+
+        <div class="slider-field">
+          <div class="slider-head">
+            <label for="pyShock">Precio de Y</label>
+            <span class="slider-value" id="pyShockValue">+0%</span>
+          </div>
+          <input id="pyShock" class="range" type="range" min="-25" max="25" step="1" value="0">
+        </div>
+
+        <div class="buttons" style="margin-top:10px">
+          <button type="button" id="resetShock">Restablecer cambios</button>
+          <button type="button" class="primary" id="updateBtn">Actualizar inicial</button>
+        </div>
+
+        <div class="note">
+          Los tres cambios pueden combinarse entre −25% y +25%. Los ejes permanecen fijos mientras mueves los sliders para facilitar la comparación visual.
+        </div>
+      </div>
+
+      <div class="error" id="error" aria-live="polite"></div>
+    </aside>
+
+    <section class="panel chart-panel">
+      <div class="summary">
+        <div class="stat">
+          <div class="k">Canasta inicial</div>
+          <div class="v" id="bundleA">—</div>
+          <div class="sub" id="utilityA">—</div>
+        </div>
+        <div class="stat">
+          <div class="k">Canasta después del cambio</div>
+          <div class="v" id="bundleB">—</div>
+          <div class="sub" id="utilityB">—</div>
+        </div>
+        <div class="stat">
+          <div class="k">Cambio en X</div>
+          <div class="v" id="deltaX">—</div>
+          <div class="sub" id="pctX">—</div>
+        </div>
+        <div class="stat">
+          <div class="k">Cambio en Y</div>
+          <div class="v" id="deltaY">—</div>
+          <div class="sub" id="pctY">—</div>
+        </div>
+      </div>
+
+      <div id="plot" role="img" aria-label="Comparación de restricciones presupuestarias, curvas de indiferencia y canastas óptimas"></div>
+
+      <div class="interpretation">
+        <div class="card" id="shockCard"></div>
+        <div class="card" id="resultCard"></div>
+      </div>
+
+      <div class="equation" id="equation"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const root = document.querySelector('.app');
+  if (!root || root.dataset.ready === '1') return;
+  root.dataset.ready = '1';
+
+  const $ = id => document.getElementById(id);
+
+  const els = {
+    utilityType:$('utilityType'),
+    alpha:$('alpha'), beta:$('beta'),
+    a:$('aParam'), b:$('bParam'),
+    cobbParams:$('cobbParams'),
+    linearParams:$('linearParams'),
+    linearTitle:$('linearTitle'),
+    incomeA:$('incomeA'), pxA:$('pxA'), pyA:$('pyA'),
+    incomeShock:$('incomeShock'), pxShock:$('pxShock'), pyShock:$('pyShock'),
+    incomeShockValue:$('incomeShockValue'), pxShockValue:$('pxShockValue'), pyShockValue:$('pyShockValue'),
+    updateBtn:$('updateBtn'), resetShock:$('resetShock'),
+    error:$('error'),
+    plot:$('plot'),
+    bundleA:$('bundleA'), bundleB:$('bundleB'),
+    utilityA:$('utilityA'), utilityB:$('utilityB'),
+    deltaX:$('deltaX'), deltaY:$('deltaY'),
+    pctX:$('pctX'), pctY:$('pctY'),
+    shockCard:$('shockCard'),
+    resultCard:$('resultCard'),
+    equation:$('equation')
+  };
+
+  const fmt = value => {
+    if (!Number.isFinite(value)) return '—';
+    const abs = Math.abs(value);
+    if (abs >= 1000) return value.toLocaleString('es-CO',{maximumFractionDigits:1});
+    if (abs >= 10) return value.toLocaleString('es-CO',{maximumFractionDigits:2});
+    return value.toLocaleString('es-CO',{maximumFractionDigits:3});
+  };
+
+  const pos = (v, fallback) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+
+
+  function shockValues() {
+    return {
+      income:Number(els.incomeShock.value) || 0,
+      px:Number(els.pxShock.value) || 0,
+      py:Number(els.pyShock.value) || 0
+    };
+  }
+
+  function updateSliderLabels() {
+    const s=shockValues();
+    const signed = v => `${v > 0 ? '+' : ''}${v}%`;
+    els.incomeShockValue.textContent=signed(s.income);
+    els.pxShockValue.textContent=signed(s.px);
+    els.pyShockValue.textContent=signed(s.py);
+  }
+
+  function scenarioBFromSliders(a) {
+    const s=shockValues();
+    const any=s.income!==0 || s.px!==0 || s.py!==0;
+    if (!any) return null;
+
+    return {
+      m:a.m*(1+s.income/100),
+      px:a.px*(1+s.px/100),
+      py:a.py*(1+s.py/100)
+    };
+  }
+
+  function preferences() {
+    return {
+      type:els.utilityType.value,
+      alpha:pos(els.alpha.value,.5),
+      beta:pos(els.beta.value,.5),
+      a:pos(els.a.value,1),
+      b:pos(els.b.value,1)
+    };
+  }
+
+  function initialScenario() {
+    return {
+      m:pos(els.incomeA.value,100),
+      px:pos(els.pxA.value,10),
+      py:pos(els.pyA.value,10)
+    };
+  }
+
+  function utility(x,y,p) {
+    const xx = Math.max(0,x);
+    const yy = Math.max(0,y);
+
+    if (p.type === 'cobb') {
+      return Math.pow(xx,p.alpha) * Math.pow(yy,p.beta);
+    }
+    if (p.type === 'substitutes') {
+      return p.a*xx + p.b*yy;
+    }
+    if (p.type === 'complements') {
+      return Math.min(p.a*xx,p.b*yy);
+    }
+    return 0;
+  }
+
+  function optimum(sc,p) {
+    // Dense one-dimensional search along the budget line.
+    // This keeps corner solutions and all preference families under one rule.
+    const n = 5000;
+    const xmax = sc.m/sc.px;
+    let best = {x:0,y:sc.m/sc.py,u:-Infinity};
+
+    for (let i=0;i<=n;i++) {
+      const x = xmax*i/n;
+      const y = Math.max(0,(sc.m-sc.px*x)/sc.py);
+      const u = utility(x,y,p);
+      if (Number.isFinite(u) && u > best.u) best = {x,y,u};
+    }
+    return best;
+  }
+
+  function indifferenceCurve(u,p,xMax,yMax) {
+    const xVals = [];
+    const yVals = [];
+
+    if (p.type === 'cobb') {
+      const n=500;
+      for (let i=1;i<=n;i++) {
+        const x=xMax*i/n;
+        const denom=Math.pow(x,p.alpha);
+        if (denom<=0) continue;
+        const y=Math.pow(u/denom,1/p.beta);
+        if (Number.isFinite(y) && y>=0 && y<=yMax) {
+          xVals.push(x); yVals.push(y);
+        }
+      }
+      return {x:xVals,y:yVals};
+    }
+
+    if (p.type === 'substitutes') {
+      const n=500;
+      for (let i=0;i<=n;i++) {
+        const x=xMax*i/n;
+        const y=(u-p.a*x)/p.b;
+        if (Number.isFinite(y) && y>=0 && y<=yMax) {
+          xVals.push(x); yVals.push(y);
+        }
+      }
+      return {x:xVals,y:yVals};
+    }
+
+    if (p.type === 'complements') {
+      const xk=u/p.a, yk=u/p.b;
+      if (!Number.isFinite(xk)||!Number.isFinite(yk)) return {x:[],y:[]};
+      return {
+        x:[xk,xk,null,xk,xMax],
+        y:[yMax,yk,null,yk,yk]
+      };
+    }
+
+    return {x:[],y:[]};
+  }
+
+  function updatePreferencePanels() {
+    const t=els.utilityType.value;
+    els.cobbParams.style.display=t==='cobb'?'':'none';
+    els.linearParams.style.display=(t==='substitutes'||t==='complements')?'':'none';
+
+    if (t==='substitutes') els.linearTitle.textContent='U(X,Y) = aX + bY';
+    if (t==='complements') els.linearTitle.textContent='U(X,Y) = min(aX, bY)';
+  }
+
+  function equationText(p) {
+    if (p.type==='cobb') {
+      return `U(X,Y)=X<sup>${fmt(p.alpha)}</sup>Y<sup>${fmt(p.beta)}</sup>`;
+    }
+    if (p.type==='substitutes') {
+      return `U(X,Y)=${fmt(p.a)}X+${fmt(p.b)}Y`;
+    }
+    return `U(X,Y)=min(${fmt(p.a)}X, ${fmt(p.b)}Y)`;
+  }
+
+  function signHTML(v) {
+    const eps=1e-5;
+    if (v>eps) return `<span class="up">aumenta</span>`;
+    if (v<-eps) return `<span class="down">disminuye</span>`;
+    return `<span class="flat">prácticamente no cambia</span>`;
+  }
+
+  function pctChange(newV,oldV) {
+    if (!Number.isFinite(oldV)||Math.abs(oldV)<1e-10) return null;
+    return 100*(newV-oldV)/oldV;
+  }
+
+  function describeShock(a,b) {
+    const parts=[];
+    const almost=(x,y)=>Math.abs(x-y)<1e-9;
+    if (!almost(a.m,b.m)) parts.push(`ingreso: ${fmt(a.m)} → ${fmt(b.m)}`);
+    if (!almost(a.px,b.px)) parts.push(`pₓ: ${fmt(a.px)} → ${fmt(b.px)}`);
+    if (!almost(a.py,b.py)) parts.push(`pᵧ: ${fmt(a.py)} → ${fmt(b.py)}`);
+    return parts.length ? parts.join('; ') : 'A y B son idénticos.';
+  }
+
+
+  function render() {
+    els.error.textContent='';
+
+    const p=preferences();
+    const a=initialScenario();
+    const b=scenarioBFromSliders(a);
+
+    const optA=optimum(a,p);
+    const optB=b ? optimum(b,p) : null;
+
+    const xIntA=a.m/a.px, yIntA=a.m/a.py;
+    const xIntB=b ? b.m/b.px : xIntA;
+    const yIntB=b ? b.m/b.py : yIntA;
+
+    // Fixed plotting window for all slider combinations:
+    // the largest intercept occurs with income +25% and the relevant price -25%.
+    const xMax=Math.max((a.m*1.25)/(a.px*0.75), xIntA, optA.x, 1)*1.12;
+    const yMax=Math.max((a.m*1.25)/(a.py*0.75), yIntA, optA.y, 1)*1.12;
+
+    const icA=indifferenceCurve(optA.u,p,xMax,yMax);
+    const icB=b ? indifferenceCurve(optB.u,p,xMax,yMax) : {x:[],y:[]};
+
+    const budgetXA=[0,xIntA];
+    const budgetYA=[yIntA,0];
+    const budgetXB=b ? [0,xIntB] : [];
+    const budgetYB=b ? [yIntB,0] : [];
+
+    const traces=[
+      {
+        type:'scatter',mode:'lines',
+        x:budgetXA,y:budgetYA,
+        name:'Presupuesto A',
+        line:{color:'#55a9d9',width:4},
+        hovertemplate:'A<br>X=%{x:.2f}<br>Y=%{y:.2f}<extra></extra>'
+      },
+      {
+        type:'scatter',mode:'lines',
+        x:budgetXB,y:budgetYB,
+        name:'Presupuesto B',
+        line:{color:'#d9534f',width:4},
+        hovertemplate:'B<br>X=%{x:.2f}<br>Y=%{y:.2f}<extra></extra>',
+        visible:!!b
+      },
+      {
+        type:'scatter',mode:'lines',
+        x:icA.x,y:icA.y,
+        name:'Indiferencia A',
+        line:{color:'#24769f',width:2.7,dash:'dot'},
+        hovertemplate:'U₀='+fmt(optA.u)+'<extra>Curva de indiferencia A</extra>'
+      },
+      {
+        type:'scatter',mode:'lines',
+        x:icB.x,y:icB.y,
+        name:'Indiferencia B',
+        line:{color:'#a9322e',width:2.7,dash:'dot'},
+        hovertemplate:b ? ('U₁='+fmt(optB.u)+'<extra>Curva de indiferencia B</extra>') : '',
+        visible:!!b
+      },
+      {
+        type:'scatter',mode:'markers+text',
+        x:[optA.x],y:[optA.y],
+        text:['A'],textposition:'top center',
+        name:'Óptimo A',
+        marker:{size:11,color:'#55a9d9',line:{color:'#173147',width:1}},
+        hovertemplate:'A<br>X*=%{x:.3f}<br>Y*=%{y:.3f}<br>U='+fmt(optA.u)+'<extra></extra>'
+      },
+      {
+        type:'scatter',mode:'markers+text',
+        x:b ? [optB.x] : [],y:b ? [optB.y] : [],
+        text:b ? ['B'] : [],textposition:'top center',
+        name:'Óptimo B',
+        marker:{size:11,color:'#d9534f',line:{color:'#173147',width:1}},
+        hovertemplate:b ? ('B<br>X*=%{x:.3f}<br>Y*=%{y:.3f}<br>U='+fmt(optB.u)+'<extra></extra>') : '',
+        visible:!!b
+      }
+    ];
+
+    const annotations=[];
+    const dx=b ? optB.x-optA.x : 0;
+    const dy=b ? optB.y-optA.y : 0;
+    if (b && Math.hypot(dx,dy)>1e-5) {
+      annotations.push({
+        x:optB.x,y:optB.y,
+        ax:optA.x,ay:optA.y,
+        xref:'x',yref:'y',axref:'x',ayref:'y',
+        showarrow:true,
+        arrowhead:3,
+        arrowsize:1.1,
+        arrowwidth:2,
+        arrowcolor:'#465966',
+        text:'',
+        opacity:.85
+      });
+    }
+
+    const layout={
+      margin:{l:65,r:25,t:20,b:55},
+      paper_bgcolor:'rgba(0,0,0,0)',
+      plot_bgcolor:'#fbfdff',
+      hovermode:'closest',
+      uirevision:'consumer-comparative-statics',
+      xaxis:{
+        title:'Bien X',
+        range:[0,xMax],
+        minallowed:0,
+        zeroline:false,
+        gridcolor:'#e3edf3',
+        linecolor:'#9fb5c4',
+        mirror:true
+      },
+      yaxis:{
+        title:'Bien Y',
+        range:[0,yMax],
+        minallowed:0,
+        zeroline:false,
+        gridcolor:'#e3edf3',
+        linecolor:'#9fb5c4',
+        mirror:true,
+        scaleanchor:'x',
+        scaleratio:1
+      },
+      legend:{
+        orientation:'h',
+        x:0,
+        y:1.08,
+        bgcolor:'rgba(255,255,255,.8)'
+      },
+      annotations
+    };
+
+    Plotly.react(els.plot,traces,layout,{
+      responsive:true,
+      displaylogo:false,
+      scrollZoom:true
+    });
+
+    const pctXChange=b ? pctChange(optB.x,optA.x) : null;
+    const pctYChange=b ? pctChange(optB.y,optA.y) : null;
+
+    els.bundleA.textContent=`X = ${fmt(optA.x)}, Y = ${fmt(optA.y)}`;
+    els.utilityA.textContent=`U₀ = ${fmt(optA.u)}`;
+
+    if (b) {
+      els.bundleB.textContent=`X = ${fmt(optB.x)}, Y = ${fmt(optB.y)}`;
+      els.utilityB.textContent=`U₁ = ${fmt(optB.u)}`;
+
+      els.deltaX.innerHTML=`${dx>=0?'+':''}${fmt(dx)}`;
+      els.deltaY.innerHTML=`${dy>=0?'+':''}${fmt(dy)}`;
+      els.deltaX.className='v '+(dx>1e-5?'up':dx<-1e-5?'down':'flat');
+      els.deltaY.className='v '+(dy>1e-5?'up':dy<-1e-5?'down':'flat');
+
+      els.pctX.textContent=pctXChange===null?'Cambio porcentual no definido':`${pctXChange>=0?'+':''}${fmt(pctXChange)}%`;
+      els.pctY.textContent=pctYChange===null?'Cambio porcentual no definido':`${pctYChange>=0?'+':''}${fmt(pctYChange)}%`;
+
+      els.shockCard.innerHTML=
+        `<strong>Cambios aplicados</strong><br>${describeShock(a,b)}`;
+
+      els.resultCard.innerHTML=
+        `<strong>Respuesta de la canasta</strong><br>`+
+        `X ${signHTML(dx)}; Y ${signHTML(dy)}.`;
+
+      els.equation.innerHTML=
+        `<strong>${equationText(p)}</strong><br>`+
+        `Inicial: ${fmt(a.px)}X + ${fmt(a.py)}Y ≤ ${fmt(a.m)} &nbsp;&nbsp;|&nbsp;&nbsp; `+
+        `Después del cambio: ${fmt(b.px)}X + ${fmt(b.py)}Y ≤ ${fmt(b.m)}.`;
+    } else {
+      els.bundleB.textContent='—';
+      els.utilityB.textContent='Selecciona un cambio';
+      els.deltaX.textContent='—';
+      els.deltaY.textContent='—';
+      els.deltaX.className='v flat';
+      els.deltaY.className='v flat';
+      els.pctX.textContent='Sin contrafactual';
+      els.pctY.textContent='Sin contrafactual';
+
+      els.shockCard.innerHTML=
+        `<strong>Escenario inicial</strong><br>`+
+        `Mueve cualquiera de los sliders para generar el escenario contrafactual.`;
+
+      els.resultCard.innerHTML=
+        `<strong>Canasta óptima inicial</strong><br>`+
+        `X* = ${fmt(optA.x)}, Y* = ${fmt(optA.y)}, U = ${fmt(optA.u)}.`;
+
+      els.equation.innerHTML=
+        `<strong>${equationText(p)}</strong><br>`+
+        `Restricción inicial: ${fmt(a.px)}X + ${fmt(a.py)}Y ≤ ${fmt(a.m)}.`;
+    }
+
+  }
+
+  function resetShock() {
+    els.incomeShock.value=0;
+    els.pxShock.value=0;
+    els.pyShock.value=0;
+    updateSliderLabels();
+    render();
+  }
+
+
+  els.utilityType.addEventListener('change',()=>{
+    resetShock();
+    updatePreferencePanels();
+    render();
+  });
+
+  [els.alpha,els.beta,els.a,els.b,
+   els.incomeA,els.pxA,els.pyA]
+    .forEach(el=>el.addEventListener('change',()=>{
+      resetShock();
+    }));
+
+  [els.incomeShock,els.pxShock,els.pyShock]
+    .forEach(el=>el.addEventListener('input',()=>{
+      updateSliderLabels();
+      render();
+    }));
+
+  els.updateBtn.addEventListener('click',()=>{
+    resetShock();
+  });
+  els.resetShock.addEventListener('click',resetShock);
+
+  let firstQuadrantGuard=false;
+  els.plot.on('plotly_relayout', eventData=>{
+    if(firstQuadrantGuard || !eventData) return;
+
+    const current=els.plot.layout || {};
+    const xr=current.xaxis && current.xaxis.range ? current.xaxis.range.slice() : null;
+    const yr=current.yaxis && current.yaxis.range ? current.yaxis.range.slice() : null;
+
+    const updates={};
+    let needsUpdate=false;
+
+    if(xr && Number.isFinite(xr[0]) && xr[0] < 0){
+      const width=Math.max(xr[1]-xr[0], 1e-9);
+      updates['xaxis.range']=[0,width];
+      needsUpdate=true;
+    }
+
+    if(yr && Number.isFinite(yr[0]) && yr[0] < 0){
+      const height=Math.max(yr[1]-yr[0], 1e-9);
+      updates['yaxis.range']=[0,height];
+      needsUpdate=true;
+    }
+
+    if(needsUpdate){
+      firstQuadrantGuard=true;
+      Plotly.relayout(els.plot,updates).finally(()=>{
+        firstQuadrantGuard=false;
+      });
+    }
+  });
+
+  updatePreferencePanels();
+  updateSliderLabels();
+  render();
+})();
+</script>
+</body>
+</html>

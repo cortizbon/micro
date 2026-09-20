@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Utilidad 3D y restricción presupuestaria</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root{
+      --bg:#f4f8fb;
+      --panel:#ffffff;
+      --text:#183145;
+      --muted:#5f7485;
+      --border:#d7e3ec;
+      --accent:#4aa3d8;
+      --accent-soft:#eef8fd;
+      --danger:#b42318;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .app{
+      max-width:1520px;
+      margin:0 auto;
+      padding:18px;
+    }
+    header{
+      margin-bottom:14px;
+    }
+    h1{
+      font-size:clamp(22px,3vw,34px);
+      margin:0 0 6px;
+      letter-spacing:-0.02em;
+    }
+    header p{
+      margin:0;
+      color:var(--muted);
+      max-width:960px;
+      line-height:1.46;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(290px,370px) minmax(0,1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:0 4px 14px rgba(33,72,104,.04);
+    }
+    .controls{
+      padding:16px;
+      position:sticky;
+      top:12px;
+    }
+    .controls h2,.chart-panel h2{
+      font-size:16px;
+      margin:0 0 12px;
+    }
+    .field{
+      margin-bottom:13px;
+    }
+    label{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      font-size:13px;
+      font-weight:650;
+      margin-bottom:6px;
+    }
+    .hint{
+      color:var(--muted);
+      font-weight:500;
+    }
+    input,select{
+      width:100%;
+      min-height:42px;
+      padding:9px 10px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      background:#fff;
+      color:var(--text);
+      font-size:16px;
+    }
+    input:focus,select:focus,button:focus{
+      outline:3px solid rgba(74,163,216,.16);
+      border-color:var(--accent);
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .subpanel{
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#fafdff;
+      margin:10px 0 14px;
+    }
+    .subpanel-title{
+      font-weight:700;
+      font-size:13px;
+      margin-bottom:10px;
+    }
+    .check{
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      gap:8px;
+      font-size:13px;
+      margin:10px 0;
+      color:var(--text);
+    }
+    .check input{
+      width:18px;
+      height:18px;
+      min-height:0;
+    }
+    .buttons{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+    button{
+      min-height:42px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      background:#fff;
+      color:var(--text);
+      padding:8px 12px;
+      font-weight:650;
+      cursor:pointer;
+    }
+    button.primary{
+      background:var(--accent);
+      border-color:var(--accent);
+      color:#fff;
+    }
+    .chart-panel{
+      min-width:0;
+      overflow:hidden;
+    }
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:8px;
+      padding:12px 12px 0;
+    }
+    .stat{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:10px;
+      padding:10px;
+      min-width:0;
+    }
+    .stat .k{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:3px;
+    }
+    .stat .v{
+      font-size:17px;
+      font-weight:750;
+      overflow-wrap:anywhere;
+    }
+    #plot{
+      width:100%;
+      min-height:640px;
+    }
+    .equation{
+      margin:0 12px 12px;
+      padding:11px 12px;
+      border-radius:10px;
+      background:var(--accent-soft);
+      line-height:1.45;
+      font-size:13px;
+      overflow-wrap:anywhere;
+    }
+    .note{
+      margin:0 12px 14px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+    .error{
+      color:var(--danger);
+      font-size:12px;
+      min-height:18px;
+      margin-top:6px;
+    }
+    @media(max-width:920px){
+      .layout{grid-template-columns:1fr}
+      .controls{position:static}
+      .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #plot{min-height:540px}
+    }
+    @media(max-width:520px){
+      .app{padding:10px}
+      .grid2{grid-template-columns:1fr}
+      .stats{grid-template-columns:1fr 1fr}
+      #plot{min-height:470px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Utilidad en 3D</h1>
+    <p>
+      Explora la superficie de utilidad para dos bienes, cambia precios e ingreso y observa
+      la restricción presupuestaria y la canasta óptima. La gráfica es interactiva: puedes rotarla,
+      acercarla, verla desde arriba y activar o desactivar elementos o cambiar parámetros manteniendo la orientación y el zoom de la cámara.
+    </p>
+  </header>
+
+  <div class="layout">
+    <aside class="panel controls">
+      <h2>Parámetros</h2>
+
+      <div class="field">
+        <label for="utilityType">Función de utilidad</label>
+        <select id="utilityType">
+          <option value="cobb">Cobb-Douglas</option>
+          <option value="substitutes">Sustitutos perfectos</option>
+          <option value="complements">Complementarios perfectos</option>
+        </select>
+      </div>
+
+      <div class="subpanel">
+        <div class="subpanel-title">Elementos visibles</div>
+        <label class="check">
+          <input id="showUtility" type="checkbox" checked>
+          Utilidad
+        </label>
+        <label class="check">
+          <input id="showBudget" type="checkbox" checked>
+          Restricción
+        </label>
+        <label class="check">
+          <input id="showOptimum" type="checkbox" checked>
+          Óptimo
+        </label>
+      </div>
+
+      <div class="subpanel">
+        <div class="subpanel-title">Restricción presupuestaria</div>
+        <div class="field">
+          <label for="income">Ingreso <span class="hint">m</span></label>
+          <input id="income" type="number" min="0.01" step="1" value="100">
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="px">Precio bien X <span class="hint">pₓ</span></label>
+            <input id="px" type="number" min="0.01" step="0.1" value="5">
+          </div>
+          <div class="field">
+            <label for="py">Precio bien Y <span class="hint">pᵧ</span></label>
+            <input id="py" type="number" min="0.01" step="0.1" value="10">
+          </div>
+        </div>
+      </div>
+
+      <div id="cobbParams" class="subpanel">
+        <div class="subpanel-title">Cobb-Douglas: U = XᵅYᵝ</div>
+        <div class="grid2">
+          <div class="field">
+            <label for="alpha">α</label>
+            <input id="alpha" type="number" min="0.01" step="0.05" value="0.5">
+          </div>
+          <div class="field">
+            <label for="beta">β</label>
+            <input id="beta" type="number" min="0.01" step="0.05" value="0.5">
+          </div>
+        </div>
+      </div>
+
+      <div id="linearParams" class="subpanel" style="display:none">
+        <div class="subpanel-title" id="linearTitle">Parámetros</div>
+        <div class="grid2">
+          <div class="field">
+            <label for="aParam">a</label>
+            <input id="aParam" type="number" min="0.01" step="0.1" value="1">
+          </div>
+          <div class="field">
+            <label for="bParam">b</label>
+            <input id="bParam" type="number" min="0.01" step="0.1" value="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button type="button" class="primary" id="updateBtn">Actualizar</button>
+        <button type="button" id="topBtn">Vista cenital</button>
+        <button type="button" id="frontBtn">Vista lateral</button>
+        <button type="button" id="resetBtn">Vista 3D</button>
+      </div>
+      <div id="error" class="error" aria-live="polite"></div>
+    </aside>
+
+    <section class="panel chart-panel">
+      <div class="stats">
+        <div class="stat"><div class="k">X óptimo</div><div class="v" id="xOpt">—</div></div>
+        <div class="stat"><div class="k">Y óptimo</div><div class="v" id="yOpt">—</div></div>
+        <div class="stat"><div class="k">Utilidad máxima</div><div class="v" id="uOpt">—</div></div>
+        <div class="stat"><div class="k">Ingreso gastado</div><div class="v" id="spent">—</div></div>
+      </div>
+
+      <div id="plot" role="img" aria-label="Superficie tridimensional de utilidad con restricción presupuestaria"></div>
+
+      <div class="equation" id="equation"></div>
+      <div class="note" id="note"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const root = document.querySelector('.app');
+  if (!root || root.dataset.ready === '1') return;
+  root.dataset.ready = '1';
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    utilityType: $('utilityType'),
+    income: $('income'),
+    px: $('px'),
+    py: $('py'),
+    alpha: $('alpha'),
+    beta: $('beta'),
+    a: $('aParam'),
+    b: $('bParam'),
+    cobbParams: $('cobbParams'),
+    linearParams: $('linearParams'),
+    linearTitle: $('linearTitle'),
+    showUtility: $('showUtility'),
+    showBudget: $('showBudget'),
+    showOptimum: $('showOptimum'),
+    updateBtn: $('updateBtn'),
+    topBtn: $('topBtn'),
+    frontBtn: $('frontBtn'),
+    resetBtn: $('resetBtn'),
+    error: $('error'),
+    xOpt: $('xOpt'),
+    yOpt: $('yOpt'),
+    uOpt: $('uOpt'),
+    spent: $('spent'),
+    equation: $('equation'),
+    note: $('note'),
+    plot: $('plot')
+  };
+
+
+  let traceGroups = {
+    utility: [],
+    budget: [],
+    optimum: []
+  };
+
+  let currentCamera = {
+    eye:{x:1.55,y:1.55,z:1.15},
+    up:{x:0,y:0,z:1},
+    center:{x:0,y:0,z:0},
+    projection:{type:'perspective'}
+  };
+
+  let plotInitialized = false;
+
+  function cloneCamera(camera) {
+    return JSON.parse(JSON.stringify(camera));
+  }
+
+  function setGroupVisibility(group, visible) {
+    const indices = traceGroups[group] || [];
+    if (!indices.length || !plotInitialized) return;
+    Plotly.restyle(els.plot, {visible: !!visible}, indices);
+  }
+
+  const clampPositive = (value, fallback=1) => {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+
+  const fmt = (x) => {
+    if (!Number.isFinite(x)) return '—';
+    const ax = Math.abs(x);
+    if (ax >= 1000) return x.toLocaleString('es-CO', {maximumFractionDigits: 1});
+    if (ax >= 10) return x.toLocaleString('es-CO', {maximumFractionDigits: 2});
+    return x.toLocaleString('es-CO', {maximumFractionDigits: 3});
+  };
+
+  function params() {
+    return {
+      type: els.utilityType.value,
+      m: clampPositive(els.income.value, 100),
+      px: clampPositive(els.px.value, 5),
+      py: clampPositive(els.py.value, 10),
+      alpha: clampPositive(els.alpha.value, 0.5),
+      beta: clampPositive(els.beta.value, 0.5),
+      a: clampPositive(els.a.value, 1),
+      b: clampPositive(els.b.value, 1)
+    };
+  }
+
+  function utility(x, y, p) {
+    if (p.type === 'cobb') {
+      return Math.pow(Math.max(x, 0), p.alpha) * Math.pow(Math.max(y, 0), p.beta);
+    }
+    if (p.type === 'substitutes') {
+      return p.a * x + p.b * y;
+    }
+    return Math.min(p.a * x, p.b * y);
+  }
+
+  function optimum(p) {
+    if (p.type === 'cobb') {
+      const s = p.alpha + p.beta;
+      const x = (p.alpha / s) * (p.m / p.px);
+      const y = (p.beta / s) * (p.m / p.py);
+      return {x, y, u: utility(x, y, p), note: 'Solución interior de Cobb-Douglas.'};
+    }
+
+    if (p.type === 'substitutes') {
+      const ux = p.a / p.px;
+      const uy = p.b / p.py;
+      if (Math.abs(ux - uy) < 1e-10) {
+        const x = p.m / (2 * p.px);
+        const y = p.m / (2 * p.py);
+        return {
+          x, y, u: utility(x, y, p),
+          note: 'Hay múltiples óptimos: cualquier punto de la restricción presupuestaria es óptimo.'
+        };
+      }
+      if (ux > uy) {
+        const x = p.m / p.px, y = 0;
+        return {x, y, u: utility(x, y, p), note: 'Solución de esquina: todo el ingreso se destina al bien X.'};
+      } else {
+        const x = 0, y = p.m / p.py;
+        return {x, y, u: utility(x, y, p), note: 'Solución de esquina: todo el ingreso se destina al bien Y.'};
+      }
+    }
+
+    const denom = p.px * p.b + p.py * p.a;
+    const x = (p.b * p.m) / denom;
+    const y = (p.a * p.m) / denom;
+    return {
+      x, y, u: utility(x, y, p),
+      note: 'Óptimo en el vértice donde a·X = b·Y y se agota el presupuesto.'
+    };
+  }
+
+  function buildGrid(maxX, maxY, p, n=65) {
+    const xs = Array.from({length:n}, (_,i) => maxX * i/(n-1));
+    const ys = Array.from({length:n}, (_,j) => maxY * j/(n-1));
+    const z = ys.map(y => xs.map(x => utility(x,y,p)));
+    return {xs, ys, z};
+  }
+
+  function updateParameterPanels() {
+    const t = els.utilityType.value;
+    const isCobb = t === 'cobb';
+    els.cobbParams.style.display = isCobb ? '' : 'none';
+    els.linearParams.style.display = isCobb ? 'none' : '';
+    if (t === 'substitutes') {
+      els.linearTitle.textContent = 'Sustitutos perfectos: U = aX + bY';
+    } else if (t === 'complements') {
+      els.linearTitle.textContent = 'Complementarios perfectos: U = min(aX, bY)';
+    }
+  }
+
+  function budgetPlaneTrace(bx, by, zMax) {
+    const X = [];
+    const Y = [];
+    const Z = [];
+    const I = [];
+    const J = [];
+    const K = [];
+    const q = bx.length;
+
+    for (let i=0; i<q; i++) {
+      X.push(bx[i], bx[i]);
+      Y.push(by[i], by[i]);
+      Z.push(0, zMax);
+    }
+
+    for (let i=0; i<q-1; i++) {
+      const a0 = 2*i;
+      const a1 = 2*i + 1;
+      const b0 = 2*(i+1);
+      const b1 = 2*(i+1) + 1;
+      I.push(a0, a0);
+      J.push(b0, b1);
+      K.push(a1, a1);
+      I.push(a1, b0);
+      J.push(b1, b1);
+      K.push(b0, a0);
+    }
+
+    return {
+      type:'mesh3d',
+      x:X, y:Y, z:Z,
+      i:I, j:J, k:K,
+      name:'Plano presupuestario',
+      color:'#d62728',
+      opacity:0.18,
+      hoverinfo:'skip',
+      showscale:false
+    };
+  }
+
+  function render() {
+    els.error.textContent = '';
+    const p = params();
+
+    const numericInputs = [
+      [els.income, 'El ingreso'],
+      [els.px, 'El precio de X'],
+      [els.py, 'El precio de Y']
+    ];
+    if (p.type === 'cobb') numericInputs.push([els.alpha, 'α'], [els.beta, 'β']);
+    else numericInputs.push([els.a, 'a'], [els.b, 'b']);
+
+    const invalid = numericInputs.find(([el]) => !(Number(el.value) > 0));
+    if (invalid) {
+      els.error.textContent = `${invalid[1]} debe ser mayor que cero. Se usó un valor válido por defecto.`;
+    }
+
+    const xInt = p.m / p.px;
+    const yInt = p.m / p.py;
+    const maxX = Math.max(xInt * 1.4, 1);
+    const maxY = Math.max(yInt * 1.4, 1);
+
+    const g = buildGrid(maxX, maxY, p);
+    const opt = optimum(p);
+
+    const zValues = g.z.flat().filter(Number.isFinite);
+    const maxU = Math.max(...zValues, opt.u, 1);
+    const zMax = maxU * 1.08;
+    const traces = [];
+    traceGroups = {utility: [], budget: [], optimum: []};
+
+    traceGroups.utility.push(traces.length);
+    traces.push({
+        type:'surface',
+        x:g.xs,
+        y:g.ys,
+        z:g.z,
+        name:'Superficie de utilidad',
+        colorscale:[
+          [0.00, '#f2fbff'],
+          [0.20, '#ddf4ff'],
+          [0.40, '#bfe8fb'],
+          [0.65, '#8fd3f4'],
+          [1.00, '#59b8ea']
+        ],
+        opacity:0.92,
+        showscale:true,
+        colorbar:{title:'U', thickness:14, len:0.72},
+        contours:{
+          z:{
+            show:true,
+            start:0,
+            end:zMax,
+            size:Math.max(zMax / 18, 0.001),
+            usecolormap:false,
+            color:'#155b7a',
+            width:5,
+            highlight:true,
+            highlightcolor:'#0b4058',
+            highlightwidth:6,
+            project:{z:false}
+          }
+        },
+        hovertemplate:'X=%{x:.2f}<br>Y=%{y:.2f}<br>U=%{z:.3f}<extra></extra>',
+        visible: !!els.showUtility.checked
+      });
+
+    const nBudget = 140;
+    const bx = Array.from({length:nBudget}, (_,i) => xInt * i/(nBudget-1));
+    const by = bx.map(x => Math.max((p.m - p.px*x)/p.py, 0));
+    const bz = bx.map((x,i) => utility(x, by[i], p));
+
+    traceGroups.budget.push(traces.length);
+    {
+      const budgetPlane = budgetPlaneTrace(bx, by, zMax);
+      budgetPlane.visible = !!els.showBudget.checked;
+      traces.push(budgetPlane);
+    }
+
+    traceGroups.budget.push(traces.length);
+    traces.push({
+        type:'scatter3d',
+        mode:'lines',
+        x:bx, y:by, z:bx.map(() => 0),
+        name:'Restricción en plano X-Y',
+        line:{color:'#9c1f1f', width:7, dash:'dash'},
+        hovertemplate:'X=%{x:.2f}<br>Y=%{y:.2f}<extra>pₓX+pᵧY=m</extra>',
+        visible: !!els.showBudget.checked
+      });
+
+    traceGroups.budget.push(traces.length);
+      traces.push({
+        type:'scatter3d',
+        mode:'lines',
+        x:[xInt, xInt], y:[0, 0], z:[0, zMax],
+        name:'Intercepto X',
+        line:{color:'#d62728', width:5},
+        hoverinfo:'skip',
+        showlegend:false,
+        visible: !!els.showBudget.checked
+      });
+
+    traceGroups.budget.push(traces.length);
+      traces.push({
+        type:'scatter3d',
+        mode:'lines',
+        x:[0, 0], y:[yInt, yInt], z:[0, zMax],
+        name:'Intercepto Y',
+        line:{color:'#d62728', width:5},
+        hoverinfo:'skip',
+        showlegend:false,
+        visible: !!els.showBudget.checked
+      });
+
+    traceGroups.budget.push(traces.length);
+    traces.push({
+      type:'scatter3d',
+      mode:'lines',
+      x:bx, y:by, z:bz,
+      name:'Restricción sobre la superficie',
+      line:{color:'#d62728', width:8},
+      hovertemplate:'X=%{x:.2f}<br>Y=%{y:.2f}<br>U=%{z:.3f}<extra>Presupuesto</extra>',
+      visible: !!(els.showBudget.checked && els.showUtility.checked)
+    });
+
+
+    traceGroups.optimum.push(traces.length);
+    traces.push({
+      type:'scatter3d',
+      mode:'markers+text',
+      x:[opt.x], y:[opt.y], z:[opt.u],
+      text:['Óptimo'],
+      textposition:'top center',
+      name:'Canasta óptima',
+      marker:{size:8, color:'#ff9f1c', line:{color:'#111', width:1}},
+      hovertemplate:'X*=%{x:.3f}<br>Y*=%{y:.3f}<br>U*=' + fmt(opt.u) + '<extra>Óptimo</extra>',
+      visible: !!els.showOptimum.checked
+    });
+
+    traceGroups.optimum.push(traces.length);
+    traces.push({
+      type:'scatter3d',
+      mode:'lines',
+      x:[opt.x,opt.x],
+      y:[opt.y,opt.y],
+      z:[0,opt.u],
+      name:'Proyección del óptimo',
+      showlegend:false,
+      line:{color:'#ff9f1c', width:4, dash:'dot'},
+      hoverinfo:'skip',
+      visible: !!els.showOptimum.checked
+    });
+
+    let formula = '';
+    if (p.type === 'cobb') {
+      formula = `U(X,Y) = X<sup>${fmt(p.alpha)}</sup>Y<sup>${fmt(p.beta)}</sup>`;
+    } else if (p.type === 'substitutes') {
+      formula = `U(X,Y) = ${fmt(p.a)}X + ${fmt(p.b)}Y`;
+    } else {
+      formula = `U(X,Y) = min(${fmt(p.a)}X, ${fmt(p.b)}Y)`;
+    }
+
+    els.equation.innerHTML =
+      `<strong>${formula}</strong><br>` +
+      `Restricción: ${fmt(p.px)}X + ${fmt(p.py)}Y ≤ ${fmt(p.m)} ` +
+      `(interceptos: X = ${fmt(xInt)}, Y = ${fmt(yInt)}).`;
+
+    els.note.textContent = opt.note + ' Las líneas sobre la superficie representan niveles de utilidad. Los cambios de parámetros conservan la orientación y el zoom actuales.';
+    els.xOpt.textContent = fmt(opt.x);
+    els.yOpt.textContent = fmt(opt.y);
+    els.uOpt.textContent = fmt(opt.u);
+    els.spent.textContent = fmt(p.px*opt.x + p.py*opt.y);
+
+    const layout = {
+      margin:{l:0,r:0,b:0,t:10},
+      paper_bgcolor:'rgba(0,0,0,0)',
+      plot_bgcolor:'rgba(0,0,0,0)',
+      legend:{
+        orientation:'h',
+        x:0,
+        y:1.04,
+        bgcolor:'rgba(255,255,255,.75)'
+      },
+      uirevision:'utility-3d-scene',
+      scene:{
+        xaxis:{
+          title:'Bien X',
+          range:[0,maxX],
+          autorange:false,
+          backgroundcolor:'rgba(234,244,250,0.65)',
+          gridcolor:'#d9e6ef',
+          zerolinecolor:'#afc7d7'
+        },
+        yaxis:{
+          title:'Bien Y',
+          range:[0,maxY],
+          autorange:false,
+          backgroundcolor:'rgba(234,244,250,0.65)',
+          gridcolor:'#d9e6ef',
+          zerolinecolor:'#afc7d7'
+        },
+        zaxis:{
+          title:'Utilidad U(X,Y)',
+          range:[0,zMax],
+          autorange:false,
+          backgroundcolor:'rgba(242,249,253,0.70)',
+          gridcolor:'#d9e6ef',
+          zerolinecolor:'#afc7d7'
+        },
+        aspectmode:'cube',
+        camera:cloneCamera(currentCamera)
+      }
+    };
+
+    const config = {
+      responsive:true,
+      displaylogo:false,
+      scrollZoom:true,
+      modeBarButtonsToRemove:['lasso3d','select2d']
+    };
+
+    if (!plotInitialized) {
+      Plotly.newPlot(els.plot, traces, layout, config).then(() => {
+        plotInitialized = true;
+        Plotly.relayout(els.plot, {'scene.camera': cloneCamera(currentCamera)});
+      });
+    } else {
+      Plotly.react(els.plot, traces, layout, config).then(() => {
+        Plotly.relayout(els.plot, {'scene.camera': cloneCamera(currentCamera)});
+      });
+    }
+  }
+
+  function setCamera(eye, up={x:0,y:0,z:1}) {
+    currentCamera = {
+      ...currentCamera,
+      eye:{...eye},
+      up:{...up}
+    };
+    if (plotInitialized) {
+      Plotly.relayout(els.plot, {'scene.camera': cloneCamera(currentCamera)});
+    }
+  }
+
+  els.utilityType.addEventListener('change', () => {
+    updateParameterPanels();
+    render();
+  });
+  els.showUtility.addEventListener('change', () => {
+    setGroupVisibility('utility', els.showUtility.checked);
+    const budgetSurfaceIdx = traceGroups.budget[4];
+    if (budgetSurfaceIdx !== undefined) {
+      Plotly.restyle(
+        els.plot,
+        {visible: !!(els.showUtility.checked && els.showBudget.checked)},
+        [budgetSurfaceIdx]
+      );
+    }
+  });
+
+  els.showBudget.addEventListener('change', () => {
+    const visible = els.showBudget.checked;
+    const indices = traceGroups.budget.slice(0, 4);
+    if (indices.length) Plotly.restyle(els.plot, {visible: !!visible}, indices);
+    const budgetSurfaceIdx = traceGroups.budget[4];
+    if (budgetSurfaceIdx !== undefined) {
+      Plotly.restyle(
+        els.plot,
+        {visible: !!(visible && els.showUtility.checked)},
+        [budgetSurfaceIdx]
+      );
+    }
+  });
+
+  els.showOptimum.addEventListener('change', () => {
+    setGroupVisibility('optimum', els.showOptimum.checked);
+  });
+  els.updateBtn.addEventListener('click', render);
+
+  [els.income,els.px,els.py,els.alpha,els.beta,els.a,els.b].forEach(el => {
+    el.addEventListener('change', render);
+  });
+
+  els.topBtn.addEventListener('click', () => setCamera({x:0.01,y:0.01,z:2.8},{x:0,y:1,z:0}));
+  els.frontBtn.addEventListener('click', () => setCamera({x:0.01,y:2.55,z:0.22}));
+  els.resetBtn.addEventListener('click', () => setCamera({x:1.55,y:1.55,z:1.15}));
+
+  els.plot.on('plotly_relayout', (eventData) => {
+    if (eventData && eventData['scene.camera']) {
+      currentCamera = cloneCamera(eventData['scene.camera']);
+      return;
+    }
+
+    // Some Plotly versions report camera fields separately.
+    const cameraKeys = Object.keys(eventData || {}).filter(k => k.startsWith('scene.camera.'));
+    if (cameraKeys.length) {
+      const next = cloneCamera(currentCamera);
+      cameraKeys.forEach(key => {
+        const path = key.replace('scene.camera.','').split('.');
+        let target = next;
+        for (let i=0; i<path.length-1; i++) {
+          if (!target[path[i]]) target[path[i]] = {};
+          target = target[path[i]];
+        }
+        target[path[path.length-1]] = eventData[key];
+      });
+      currentCamera = next;
+    }
+  });
+
+  updateParameterPanels();
+  render();
+})();
+</script>
+</body>
+</html>
